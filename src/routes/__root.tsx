@@ -7,6 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 
@@ -72,11 +73,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Axid AI — Your futuristic AI assistant" },
+      {
+        name: "description",
+        content:
+          "Axid AI is an all-in-one futuristic AI assistant for chatting, coding, studying, creativity, and everyday tasks.",
+      },
+      { name: "author", content: "Axid AI" },
+      { property: "og:title", content: "Axid AI — Your futuristic AI assistant" },
+      {
+        property: "og:description",
+        content:
+          "All-in-one AI for chat, code, study, creativity, and everyday tasks. Minimal black-and-white interface.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
@@ -114,6 +123,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
+      <Toaster theme="dark" position="top-center" />
     </QueryClientProvider>
   );
 }
