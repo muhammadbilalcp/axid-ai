@@ -90,6 +90,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Axid AI — Your futuristic AI assistant" },
+      { name: "description", content: "Axid AI is a futuristic AI assistant for chatting, studying, coding, creativity, and everyday tasks." },
+      { property: "og:description", content: "Axid AI is a futuristic AI assistant for chatting, studying, coding, creativity, and everyday tasks." },
+      { name: "twitter:description", content: "Axid AI is a futuristic AI assistant for chatting, studying, coding, creativity, and everyday tasks." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/LJJ6CBHZVac4Sdz7X8UCB0N4ber2/social-images/social-1778160704922-4F3F9ADF-F994-4314-9E58-774B1111A6F8.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/LJJ6CBHZVac4Sdz7X8UCB0N4ber2/social-images/social-1778160704922-4F3F9ADF-F994-4314-9E58-774B1111A6F8.webp" },
     ],
     links: [
       {
