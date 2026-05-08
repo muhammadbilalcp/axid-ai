@@ -5,18 +5,20 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About — Axid AI" },
+      { title: "About Axid AI – Futuristic AI Assistant" },
       {
         name: "description",
         content:
-          "Learn about Axid AI — an all-in-one futuristic assistant for chat, learning, coding, creativity, and daily tasks.",
+          "Learn about Axid AI, a futuristic AI assistant for chatting, creativity, studying, coding, and everyday tasks.",
       },
-      { property: "og:title", content: "About — Axid AI" },
+      { name: "keywords", content: "Axid AI, AI assistant, futuristic AI, chatbot, smart AI, about Axid AI" },
+      { property: "og:title", content: "About Axid AI – Futuristic AI Assistant" },
       {
         property: "og:description",
-        content: "An all-in-one futuristic AI assistant for everything.",
+        content: "Learn about Axid AI, a futuristic AI assistant for chat, creativity, study, and coding.",
       },
     ],
+    links: [{ rel: "canonical", href: "https://axid-ai.lovable.app/about" }],
   }),
   component: About,
 });

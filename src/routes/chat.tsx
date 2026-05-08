@@ -21,8 +21,9 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/chat")({
   head: () => ({
     meta: [
-      { title: "Chat — Axid AI" },
-      { name: "description", content: "Talk with Axid AI in a fast, minimal chat interface." },
+      { title: "Chat with Axid AI – Futuristic AI Assistant" },
+      { name: "description", content: "Chat with Axid AI, a futuristic AI assistant for creativity, studying, coding, and everyday tasks." },
+      { name: "robots", content: "noindex, follow" },
     ],
   }),
   component: ChatPage,
