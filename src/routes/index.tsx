@@ -6,13 +6,17 @@ import { ArrowRight, Sparkles, Code2, BookOpen, Image as ImageIcon } from "lucid
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Axid AI — Your futuristic AI assistant" },
+      { title: "Axid AI – Futuristic AI Assistant" },
       {
         name: "description",
         content:
-          "Axid AI is your futuristic AI assistant for chatting, coding, studying, creativity, and everyday tasks.",
+          "Axid AI is a futuristic AI assistant for chatting, creativity, studying, coding, and more.",
       },
+      { name: "keywords", content: "Axid AI, AI assistant, futuristic AI, chatbot, smart AI" },
+      { property: "og:title", content: "Axid AI – Futuristic AI Assistant" },
+      { property: "og:description", content: "Axid AI is a futuristic AI assistant for chatting, creativity, studying, coding, and more." },
     ],
+    links: [{ rel: "canonical", href: "https://axid-ai.lovable.app/" }],
   }),
   component: Home,
 });
