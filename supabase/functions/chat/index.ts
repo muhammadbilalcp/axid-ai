@@ -58,6 +58,21 @@ Deno.serve(async (req) => {
     }
 
     // Streaming text chat
+    // Messages may include attachments: { role, content, image_url? }
+    // Convert to multimodal content parts when image_url is present.
+    const normalized = (messages as any[]).map((m) => {
+      if (m.image_url) {
+        return {
+          role: m.role,
+          content: [
+            { type: "text", text: m.content || "" },
+            { type: "image_url", image_url: { url: m.image_url } },
+          ],
+        };
+      }
+      return { role: m.role, content: m.content };
+    });
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -66,7 +81,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...normalized],
         stream: true,
       }),
     });
