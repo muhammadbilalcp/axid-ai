@@ -15,6 +15,10 @@ import {
   Trash2,
   Menu,
   X,
+  Mic,
+  Square,
+  Paperclip,
+  Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,6 +51,13 @@ function ChatPage() {
   const [busy, setBusy] = useState(false);
   const [imgMode, setImgMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [attachment, setAttachment] = useState<{ url: string; uploading: boolean } | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -128,17 +139,19 @@ function ChatPage() {
 
   const send = async () => {
     const text = input.trim();
-    if (!text || busy || !user) return;
+    if ((!text && !attachment?.url) || busy || !user || attachment?.uploading) return;
     setInput("");
+    const att = attachment;
+    setAttachment(null);
     setBusy(true);
 
-    const cid = await ensureChat(text);
+    const cid = await ensureChat(text || "Photo");
     if (!cid) {
       setBusy(false);
       return;
     }
 
-    const userMsg: Msg = { role: "user", content: text };
+    const userMsg: Msg = { role: "user", content: text, image_url: att?.url ?? null };
     const nextMsgs = [...messages, userMsg];
     setMessages(nextMsgs);
     await persistMessage(cid, userMsg);
@@ -186,7 +199,11 @@ function ChatPage() {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({
-          messages: msgs.map((m) => ({ role: m.role, content: m.content })),
+          messages: msgs.map((m) => ({
+            role: m.role,
+            content: m.content,
+            image_url: m.image_url ?? undefined,
+          })),
         }),
       }
     );
@@ -282,6 +299,99 @@ function ChatPage() {
     await supabase.from("chats").delete().eq("id", id);
     setChats((c) => c.filter((x) => x.id !== id));
     if (chatId === id) newChat();
+  };
+
+  // Photo upload
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Image must be under 8MB");
+      return;
+    }
+    const localUrl = URL.createObjectURL(file);
+    setAttachment({ url: localUrl, uploading: true });
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${user.id}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from("chat-images")
+      .upload(path, file, { contentType: file.type });
+    if (error) {
+      toast.error("Upload failed");
+      setAttachment(null);
+      return;
+    }
+    const { data } = supabase.storage.from("chat-images").getPublicUrl(path);
+    setAttachment({ url: data.publicUrl, uploading: false });
+  };
+
+  // Voice recording
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      recordedChunksRef.current = [];
+      mr.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+      };
+      mr.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(recordedChunksRef.current, {
+          type: mr.mimeType || "audio/webm",
+        });
+        await transcribeBlob(blob);
+      };
+      mediaRecorderRef.current = mr;
+      mr.start();
+      setRecording(true);
+    } catch {
+      toast.error("Microphone permission denied");
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+  };
+
+  const transcribeBlob = async (blob: Blob) => {
+    setTranscribing(true);
+    try {
+      const buf = await blob.arrayBuffer();
+      // base64 encode
+      let binary = "";
+      const bytes = new Uint8Array(buf);
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
+      }
+      const base64 = btoa(binary);
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ audio: base64, mime_type: blob.type }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Transcription failed");
+      const text = (data.text || "").trim();
+      if (text) setInput((cur) => (cur ? cur + " " + text : text));
+      else toast.error("Couldn't hear anything");
+    } catch (e: any) {
+      toast.error(e.message || "Transcription failed");
+    } finally {
+      setTranscribing(false);
+    }
   };
 
   if (authLoading || !user) {
@@ -410,31 +520,123 @@ function ChatPage() {
 
         {/* Input */}
         <div className="border-t border-border bg-background p-4">
-          <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-border bg-card p-2">
-            <Button
-              size="icon"
-              variant={imgMode ? "default" : "ghost"}
-              onClick={() => setImgMode((v) => !v)}
-              title="Image mode"
-            >
-              <ImagePlus className="h-4 w-4" />
-            </Button>
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  send();
+          <div className="mx-auto max-w-3xl">
+            {attachment && (
+              <div className="mb-2 flex items-center gap-2">
+                <div className="relative">
+                  <img
+                    src={attachment.url}
+                    alt="Attachment preview"
+                    className="h-20 w-20 rounded-xl border border-border object-cover"
+                  />
+                  {attachment.uploading && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-background/60 text-xs">
+                      Uploading…
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setAttachment(null)}
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background"
+                    aria-label="Remove attachment"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="flex items-end gap-1.5 rounded-3xl border border-border bg-card p-1.5 shadow-sm">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onPickFile}
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={onPickFile}
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-10 w-10 rounded-full"
+                onClick={() => fileInputRef.current?.click()}
+                title="Attach photo"
+              >
+                <Paperclip className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-10 w-10 rounded-full md:hidden"
+                onClick={() => cameraInputRef.current?.click()}
+                title="Camera"
+              >
+                <ImageIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant={imgMode ? "default" : "ghost"}
+                className="h-10 w-10 rounded-full"
+                onClick={() => setImgMode((v) => !v)}
+                title="Generate image mode"
+              >
+                <ImagePlus className="h-4 w-4" />
+              </Button>
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    send();
+                  }
+                }}
+                placeholder={
+                  recording
+                    ? "Recording…"
+                    : transcribing
+                    ? "Transcribing…"
+                    : imgMode
+                    ? "Describe an image…"
+                    : "Message Axid AI…"
                 }
-              }}
-              placeholder={imgMode ? "Describe an image…" : "Message Axid AI…"}
-              className="min-h-[44px] max-h-40 resize-none border-0 bg-transparent focus-visible:ring-0"
-              rows={1}
-            />
-            <Button size="icon" onClick={send} disabled={busy || !input.trim()}>
-              <Send className="h-4 w-4" />
-            </Button>
+                disabled={recording || transcribing}
+                className="min-h-[40px] max-h-40 flex-1 resize-none border-0 bg-transparent px-2 py-2 shadow-none focus-visible:ring-0"
+                rows={1}
+              />
+              {input.trim() || attachment ? (
+                <Button
+                  size="icon"
+                  className="h-10 w-10 rounded-full"
+                  onClick={send}
+                  disabled={busy || attachment?.uploading}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  size="icon"
+                  variant={recording ? "default" : "ghost"}
+                  className={`h-10 w-10 rounded-full ${recording ? "animate-pulse" : ""}`}
+                  onClick={recording ? stopRecording : startRecording}
+                  disabled={transcribing}
+                  title={recording ? "Stop recording" : "Voice"}
+                >
+                  {recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+              )}
+            </div>
+            {recording && (
+              <div className="mt-2 flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-foreground" />
+                Recording — tap stop to send
+              </div>
+            )}
           </div>
           <p className="mx-auto mt-2 max-w-3xl text-center text-[11px] text-muted-foreground">
             Axid AI can make mistakes. Verify important info.
