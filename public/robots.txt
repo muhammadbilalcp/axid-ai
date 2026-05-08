@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /chat
+Disallow: /auth
+
+Sitemap: https://axid-ai.lovable.app/sitemap.xml
