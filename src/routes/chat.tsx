@@ -519,7 +519,7 @@ function ChatPage() {
         </div>
 
         {/* Input */}
-        <div className="border-t border-border bg-background p-4">
+        <div className="sticky bottom-0 z-30 border-t border-border bg-background p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div className="mx-auto max-w-3xl">
             {attachment && (
               <div className="mb-2 flex items-center gap-2">
@@ -544,7 +544,7 @@ function ChatPage() {
                 </div>
               </div>
             )}
-            <div className="flex items-end gap-1.5 rounded-3xl border border-border bg-card p-1.5 shadow-sm">
+            <div className="flex items-end gap-1 rounded-3xl border border-border bg-card p-1.5 shadow-sm">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -560,33 +560,36 @@ function ChatPage() {
                 className="hidden"
                 onChange={onPickFile}
               />
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-10 w-10 rounded-full"
+              <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 title="Attach photo"
+                aria-label="Attach photo"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground hover:bg-accent"
               >
-                <Paperclip className="h-4 w-4" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-10 w-10 rounded-full md:hidden"
+                <Paperclip className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
                 onClick={() => cameraInputRef.current?.click()}
                 title="Camera"
+                aria-label="Camera"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground hover:bg-accent"
               >
-                <ImageIcon className="h-4 w-4" />
-              </Button>
-              <Button
-                size="icon"
-                variant={imgMode ? "default" : "ghost"}
-                className="h-10 w-10 rounded-full"
+                <ImageIcon className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
                 onClick={() => setImgMode((v) => !v)}
                 title="Generate image mode"
+                aria-label="Generate image mode"
+                aria-pressed={imgMode}
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                  imgMode ? "bg-foreground text-background" : "text-foreground hover:bg-accent"
+                }`}
               >
-                <ImagePlus className="h-4 w-4" />
-              </Button>
+                <ImagePlus className="h-5 w-5" />
+              </button>
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -606,30 +609,33 @@ function ChatPage() {
                     : "Message Axid AI…"
                 }
                 disabled={recording || transcribing}
-                className="min-h-[40px] max-h-40 flex-1 resize-none border-0 bg-transparent px-2 py-2 shadow-none focus-visible:ring-0"
+                className="min-h-[40px] max-h-40 min-w-0 flex-1 resize-none border-0 bg-transparent px-2 py-2 text-foreground shadow-none focus-visible:ring-0"
                 rows={1}
               />
-              {input.trim() || attachment ? (
-                <Button
-                  size="icon"
-                  className="h-10 w-10 rounded-full"
-                  onClick={send}
-                  disabled={busy || attachment?.uploading}
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button
-                  size="icon"
-                  variant={recording ? "default" : "ghost"}
-                  className={`h-10 w-10 rounded-full ${recording ? "animate-pulse" : ""}`}
-                  onClick={recording ? stopRecording : startRecording}
-                  disabled={transcribing}
-                  title={recording ? "Stop recording" : "Voice"}
-                >
-                  {recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                </Button>
-              )}
+              <button
+                type="button"
+                onClick={recording ? stopRecording : startRecording}
+                disabled={transcribing}
+                title={recording ? "Stop recording" : "Voice"}
+                aria-label={recording ? "Stop recording" : "Start voice recording"}
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full disabled:opacity-50 ${
+                  recording
+                    ? "animate-pulse bg-foreground text-background"
+                    : "text-foreground hover:bg-accent"
+                }`}
+              >
+                {recording ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              </button>
+              <button
+                type="button"
+                onClick={send}
+                disabled={busy || attachment?.uploading || (!input.trim() && !attachment)}
+                title="Send"
+                aria-label="Send message"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background disabled:opacity-40"
+              >
+                <Send className="h-5 w-5" />
+              </button>
             </div>
             {recording && (
               <div className="mt-2 flex items-center justify-center gap-1 text-xs text-muted-foreground">
