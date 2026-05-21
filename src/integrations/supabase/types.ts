@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocked_users: {
+        Row: {
+          blocked_at: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          blocked_at?: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          blocked_at?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       chats: {
         Row: {
           created_at: string
@@ -102,7 +120,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_users: {
+        Args: never
+        Returns: {
+          chat_count: number
+          created_at: string
+          display_name: string
+          email: string
+          id: string
+          is_blocked: boolean
+          last_message_at: string
+          last_sign_in_at: string
+          message_count: number
+        }[]
+      }
+      admin_stats: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      is_blocked: { Args: { _uid: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
