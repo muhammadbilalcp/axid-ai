@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   BarChart3,
   ArrowLeft,
+  Download,
 } from "lucide-react";
 
 const ADMIN_EMAIL = "muhammadbilalcp@gmail.com";
@@ -222,18 +223,66 @@ function UsersPanel() {
     );
   }, [users, q]);
 
+  const exportCsv = () => {
+    const headers = [
+      "email",
+      "full_name",
+      "signed_up_at",
+      "last_sign_in_at",
+      "last_activity_at",
+      "messages",
+      "chats",
+      "blocked",
+    ];
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = filtered.map((u) =>
+      [
+        u.email,
+        u.display_name ?? "",
+        u.created_at,
+        u.last_sign_in_at ?? "",
+        u.last_message_at ?? "",
+        u.message_count,
+        u.chat_count,
+        u.is_blocked ? "yes" : "no",
+      ]
+        .map(esc)
+        .join(","),
+    );
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `axid-users-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   if (err) return <ErrorBox message={err} />;
 
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
-        <Search className="h-4 w-4 text-muted-foreground" />
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search by email or name…"
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-foreground"
         />
+        <button
+          onClick={exportCsv}
+          disabled={filtered.length === 0}
+          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-3 py-2 text-sm hover:bg-accent disabled:opacity-40"
+        >
+          <Download className="h-4 w-4" /> Export CSV
+        </button>
       </div>
 
       {loading ? (
@@ -247,6 +296,7 @@ function UsersPanel() {
                 <th className="px-3 py-2">Messages</th>
                 <th className="px-3 py-2">Chats</th>
                 <th className="px-3 py-2">Last active</th>
+                <th className="px-3 py-2">Last login</th>
                 <th className="px-3 py-2">Joined</th>
                 <th className="px-3 py-2 text-right">Actions</th>
               </tr>
@@ -271,6 +321,9 @@ function UsersPanel() {
                     {u.last_message_at ? new Date(u.last_message_at).toLocaleString() : "—"}
                   </td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">
+                    {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString() : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">
                     {new Date(u.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-3 py-2 text-right">
@@ -287,7 +340,7 @@ function UsersPanel() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
                     No users found.
                   </td>
                 </tr>
